@@ -2,6 +2,7 @@ import unittest
 
 from hermes_qiong_gui_switch.models import (
     BUILTIN_PROVIDERS,
+    KNOWN_MODELS,
     get_model_info,
     get_models_for_slot,
 )
@@ -16,6 +17,7 @@ class GLMVisionModelCatalogTest(unittest.TestCase):
         zhipu_models = BUILTIN_PROVIDERS["智谱"]["models"]
         self.assertIn(official_model_id, zhipu_models)
         self.assertNotIn(old_model_id, zhipu_models)
+        self.assertNotIn(old_model_id, KNOWN_MODELS)
         self.assertEqual(
             get_model_info(official_model_id),
             {"type": "vision", "image_mode": "base64"},

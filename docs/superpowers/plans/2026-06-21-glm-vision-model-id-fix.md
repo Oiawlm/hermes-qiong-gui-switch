@@ -168,10 +168,10 @@ glm-4.1v-thinking-flashx
 Run:
 
 ```powershell
-rg -n -S "glm-4\.1v-flashx" PLAN.md hermes_qiong_gui_switch tests README.md
+rg -n -S "glm-4\.1v-flashx" PLAN.md hermes_qiong_gui_switch README.md
 ```
 
-Expected: no matches.
+Expected: no matches. `tests/test_switcher.py` intentionally preserves the obsolete identifier as regression evidence.
 
 - [ ] **Step 3: Run the complete repository test suite**
 
@@ -416,14 +416,13 @@ Run:
 rg -n -S "glm-4\.1v-flashx" `
   PLAN.md `
   hermes_qiong_gui_switch `
-  tests `
   'C:\Users\Lenovo\.hermes\skills\hermes-qiong-gui-switch' `
   'C:\Users\Lenovo\.hermes\skills\devops\hermes-model-switching' `
   'C:\Users\Lenovo\.hermes\skills\devops\cc-switch-skill-management\references\hermes-model-switching.md' `
   'C:\Users\Lenovo\.hermes\skills\superpowers\using-superpowers\references\chinese-llm-pricing-2026.md'
 ```
 
-Expected: no matches. The approved design and implementation plan are excluded because they intentionally preserve the obsolete identifier as historical failure evidence.
+Expected: no matches. The approved design and implementation plan are excluded because they intentionally preserve the obsolete identifier as historical failure evidence. `tests/test_switcher.py` also intentionally preserves the obsolete identifier as `assertNotIn` regression evidence.
 
 - [ ] **Step 3: Inspect repository history and working tree**
 
