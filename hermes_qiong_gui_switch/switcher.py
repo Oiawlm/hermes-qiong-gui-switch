@@ -13,20 +13,12 @@ PROVIDERS_FILE = Path(__file__).parent.parent / "providers.yaml"
 
 
 def load_providers() -> dict:
-    """加载供应商配置：内置 base_url + 模型 + 用户填的 API key。
-    
-    用户只需在 providers.yaml 里填 key，格式（等号格式，不是 YAML）：
-        火山方舟-AgentPlan=sk-xxx
-        DeepSeek官方=sk-xxx
-    
-    base_url 和模型列表全部内置，用户不用管。
-    """
+    """加载供应商配置：内置 base_url + 模型 + 用户填的 API key。"""
     if not PROVIDERS_FILE.exists():
         print(f"错误: 找不到 {PROVIDERS_FILE}")
         print("请创建 providers.yaml 并填入你的 API key")
         sys.exit(1)
 
-    # 解析 key=value 格式（不是 YAML，就是纯文本）
     user_keys = {}
     with open(PROVIDERS_FILE, "r", encoding="utf-8") as f:
         for line in f:
@@ -37,12 +29,11 @@ def load_providers() -> dict:
                 name, key = line.split("=", 1)
                 user_keys[name.strip()] = key.strip()
 
-    # 合并：内置配置 + 用户 key，没有 key 的供应商跳过
     providers = {}
     for name, builtin in BUILTIN_PROVIDERS.items():
         key = user_keys.get(name, "").strip()
         if not key or key == "你的key":
-            continue  # 用户没填 key，跳过这个供应商
+            continue
         providers[name] = {
             "base_url": builtin["base_url"],
             "api_key": key,
@@ -97,70 +88,64 @@ def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
         yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 
-def show_menu(providers: dict) -> tuple:
-    """CLI 交互菜单"""
-    main_models = get_models_for_slot(providers, "main")
-    vision_models = get_models_for_slot(providers, "vision")
-    current_main, current_vision = load_current_config()
-
-    main_choice = None
-    vision_choice = None
+def pick_one(title, models, current_name):
+    """问用户选一个，返回 (provider_name, model_name) 或 None"""
+    print()
+    print(f"  {title}")
+    print(f"  当前用的是: {current_name}")
+    print()
+    for i, (pname, mname, _info) in enumerate(models, 1):
+        print(f"  {i}. {mname}（{pname}）")
+    print(f"  回车 = 不换，保持当前")
+    print()
 
     while True:
-        print("\n" + "=" * 50)
-        print("  Hermes 穷鬼 Switch")
-        print("=" * 50)
-        print(f"  当前: 主模型 {current_main} | 视觉 {current_vision}")
-        print()
-        print("  --- 主模型（输数字选）---")
-        for i, (pname, mname, _info) in enumerate(main_models, 1):
-            marker = " ← 当前" if mname == current_main else ""
-            print(f"  {i}. {mname} ({pname}){marker}")
-
-        print()
-        print("  --- 视觉模型（输数字选）---")
-        offset = len(main_models)
-        for j, (pname, mname, _info) in enumerate(vision_models, offset + 1):
-            marker = " ← 当前" if mname == current_vision else ""
-            print(f"  {j}. {mname} ({pname}){marker}")
-
-        print()
-        print("  选好后按 A 应用，按 Q 退出")
-        print()
-
-        choice = input("  输入数字或字母: ").strip().upper()
-
-        if choice == "Q":
-            print("已取消。")
-            sys.exit(0)
-
-        if choice == "A":
-            if main_choice is None and vision_choice is None:
-                print("请至少选择一个模型。")
-                continue
-            break
-
+        choice = input("  输入数字: ").strip()
+        if choice == "":
+            return None
         try:
             idx = int(choice) - 1
-            if idx < len(main_models):
-                main_choice = (main_models[idx][0], main_models[idx][1])
-                print(f"主模型 → {main_choice[1]}")
-            elif idx < len(main_models) + len(vision_models):
-                v_idx = idx - len(main_models)
-                vision_choice = (vision_models[v_idx][0], vision_models[v_idx][1])
-                print(f"视觉模型 → {vision_choice[1]}")
-            else:
-                print("无效选择。")
-        except (ValueError, IndexError):
-            print("无效选择。")
-
-    return main_choice, vision_choice
+            if 0 <= idx < len(models):
+                return (models[idx][0], models[idx][1])
+        except ValueError:
+            pass
+        print(f"  请输入 1 到 {len(models)}，或直接回车跳过")
 
 
 def main() -> None:
     providers = load_providers()
-    main_choice, vision_choice = show_menu(providers)
+    main_models = get_models_for_slot(providers, "main")
+    vision_models = get_models_for_slot(providers, "vision")
+    current_main, current_vision = load_current_config()
 
+    print()
+    print("=" * 50)
+    print("  Hermes 穷鬼 Switch")
+    print("=" * 50)
+
+    # 第一步：选主模型
+    main_choice = pick_one("第一步：选主模型", main_models, current_main)
+
+    # 第二步：选视觉模型
+    vision_choice = pick_one("第二步：选视觉模型（可跳过）", vision_models, current_vision)
+
+    # 确认
+    print()
+    if main_choice:
+        print(f"  主模型 → {main_choice[1]}")
+    else:
+        print(f"  主模型 → 不换（保持 {current_main}）")
+    if vision_choice:
+        print(f"  视觉模型 → {vision_choice[1]}")
+    else:
+        print(f"  视觉模型 → 不换（保持 {current_vision}）")
+
+    confirm = input("\n  确认应用？(y/n): ").strip().lower()
+    if confirm not in ("y", "yes", ""):
+        print("已取消。")
+        sys.exit(0)
+
+    # 如果选了 Agnes 视觉模型，启动代理
     if vision_choice is not None:
         _pname, mname = vision_choice
         info = get_model_info(mname)
@@ -174,11 +159,10 @@ def main() -> None:
                 if is_proxy_running():
                     print("代理已启动 (localhost:8899)")
                 else:
-                    print("警告: 代理启动失败，视觉功能可能不可用")
+                    print("警告: 代理启动失败")
 
     write_hermes_config(providers, main_choice, vision_choice)
-    print("\n配置已写入 Hermes config.yaml")
-    print("请重启 Hermes 终端使配置生效。")
+    print("\n搞定！重启 Hermes 终端就行了。")
 
 
 if __name__ == "__main__":
