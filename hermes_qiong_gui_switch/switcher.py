@@ -15,9 +15,9 @@ PROVIDERS_FILE = Path(__file__).parent.parent / "providers.yaml"
 def load_providers() -> dict:
     """加载供应商配置：内置 base_url + 模型 + 用户填的 API key。
     
-    用户只需在 providers.yaml 里填 key，格式：
-        火山方舟-AgentPlan: sk-xxx
-        DeepSeek官方: sk-xxx
+    用户只需在 providers.yaml 里填 key，格式（等号格式，不是 YAML）：
+        火山方舟-AgentPlan=sk-xxx
+        DeepSeek官方=sk-xxx
     
     base_url 和模型列表全部内置，用户不用管。
     """
@@ -26,8 +26,16 @@ def load_providers() -> dict:
         print("请创建 providers.yaml 并填入你的 API key")
         sys.exit(1)
 
+    # 解析 key=value 格式（不是 YAML，就是纯文本）
+    user_keys = {}
     with open(PROVIDERS_FILE, "r", encoding="utf-8") as f:
-        user_keys = yaml.safe_load(f) or {}
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                name, key = line.split("=", 1)
+                user_keys[name.strip()] = key.strip()
 
     # 合并：内置配置 + 用户 key，没有 key 的供应商跳过
     providers = {}

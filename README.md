@@ -6,13 +6,13 @@
 
 **第一步：填 key**
 
-复制 `providers.yaml.example` 为 `providers.yaml`，把 `你的key` 换成真实的 API key。没有的供应商删掉或留空。
+复制 `providers.yaml.example` 为 `providers.yaml`，把等号右边换成你的真实 API key。没有的删掉或留空。
 
-```yaml
-火山方舟-AgentPlan: ark-7e5d...
-DeepSeek官方: sk-xxx
-智谱: 你的key
-Agnes免费: sk-P7j...
+```
+火山方舟-AgentPlan=ark-7e5d...
+DeepSeek官方=sk-xxx
+智谱=你的key
+Agnes免费=sk-P7j...
 ```
 
 **第二步：运行**
@@ -24,7 +24,7 @@ python -m hermes_qiong_gui_switch.switcher
 
 **第三步：选模型**
 
-上下键选主模型和视觉模型，按 A 应用，重启 Hermes。
+输入数字选主模型和视觉模型，按 A 应用，重启 Hermes。
 
 ## 内置供应商
 
