@@ -112,25 +112,23 @@ def show_menu(providers: dict) -> tuple:
         print("=" * 50)
         print(f"  当前: 主模型 {current_main} | 视觉 {current_vision}")
         print()
-
-        print("  主模型:")
+        print("  --- 主模型（输数字选）---")
         for i, (pname, mname, _info) in enumerate(main_models, 1):
-            marker = " ←" if mname == current_main else ""
-            print(f"    {i}. {mname} ({pname}){marker}")
+            marker = " ← 当前" if mname == current_main else ""
+            print(f"  {i}. {mname} ({pname}){marker}")
 
         print()
-        print("  视觉模型:")
+        print("  --- 视觉模型（输数字选）---")
         offset = len(main_models)
         for j, (pname, mname, _info) in enumerate(vision_models, offset + 1):
-            marker = " ←" if mname == current_vision else ""
-            print(f"    {j}. {mname} ({pname}){marker}")
+            marker = " ← 当前" if mname == current_vision else ""
+            print(f"  {j}. {mname} ({pname}){marker}")
 
         print()
-        print("  A. 应用配置并退出")
-        print("  Q. 退出（不保存）")
+        print("  选好后按 A 应用，按 Q 退出")
         print()
 
-        choice = input("  选择: ").strip().upper()
+        choice = input("  输入数字或字母: ").strip().upper()
 
         if choice == "Q":
             print("已取消。")
