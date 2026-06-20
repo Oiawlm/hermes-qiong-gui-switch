@@ -31,12 +31,12 @@ hermes-qiong-gui-switch/
 ### Task 1: 项目骨架 + providers.yaml 示例
 
 **Files:**
-- Create: `hermes-qiong-gui-switch/providers.yaml.example`
+- Create: `hermes-qiong-gui-switch/providers.yaml`
 - Create: `hermes-qiong-gui-switch/hermes_qiong_gui_switch/__init__.py`
 - Create: `hermes-qiong-gui-switch/.gitignore`
 - Create: `hermes-qiong-gui-switch/README.md`
 
-- [ ] **Step 1: 创建 providers.yaml.example**
+- [ ] **Step 1: 创建 providers.yaml**
 
 ```yaml
 # Hermes 穷鬼 Switch - 供应商配置
@@ -104,8 +104,7 @@ __pycache__/
 ```bash
 git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git
 cd hermes-qiong-gui-switch
-cp providers.yaml.example providers.yaml
-# 编辑 providers.yaml，填入你的 API key
+# 编辑仓库自带的 providers.yaml，填入你的 API key
 ```
 
 ## 使用
@@ -394,7 +393,7 @@ def load_providers():
     """加载供应商配置"""
     if not PROVIDERS_FILE.exists():
         print(f"错误: 找不到 {PROVIDERS_FILE}")
-        print("请复制 providers.yaml.example 为 providers.yaml 并填入你的 API key")
+        print("请编辑 providers.yaml 并填入你的 API key")
         sys.exit(1)
     with open(PROVIDERS_FILE, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -540,7 +539,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 测试菜单显示**
 
-Run: `cd hermes-qiong-gui-switch && cp providers.yaml.example providers.yaml && python -m hermes_qiong_gui_switch.switcher`
+Run: `cd hermes-qiong-gui-switch && python -m hermes_qiong_gui_switch.switcher`
 
 Expected: 显示菜单，列出所有模型，按 Q 退出。
 
@@ -585,7 +584,7 @@ git commit -m "feat: 主切换逻辑 — CLI 菜单 + config 写入"
 ```bash
 git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git
 cd hermes-qiong-gui-switch
-cp providers.yaml.example providers.yaml
+# 编辑仓库自带的 providers.yaml
 ```
 
 编辑 `providers.yaml`，填入你的 API key。
