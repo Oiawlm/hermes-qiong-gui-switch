@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
 
 from hermes_qiong_gui_switch.models import (
     BUILTIN_PROVIDERS,
@@ -6,7 +9,12 @@ from hermes_qiong_gui_switch.models import (
     get_model_info,
     get_models_for_slot,
 )
-from hermes_qiong_gui_switch.switcher import build_slot_notice
+from hermes_qiong_gui_switch.proxy import start_proxy_process
+from hermes_qiong_gui_switch.switcher import (
+    build_slot_notice,
+    resolve_hermes_config_path,
+    write_hermes_config,
+)
 
 
 class GLMVisionModelCatalogTest(unittest.TestCase):
@@ -55,6 +63,82 @@ class BuildSlotNoticeTest(unittest.TestCase):
         self.assertIn("Agnes免费", notice)
         self.assertIn("只会在第二步出现", notice)
         self.assertIn("agnes-2.0-flash", notice)
+
+
+class HermesConfigPathTest(unittest.TestCase):
+    def test_resolves_config_path_from_hermes_config_output(self):
+        completed = Mock(
+            stdout=(
+                "\n"
+                "◆ Paths\n"
+                "  Config:       D:\\HermesHome\\config.yaml\n"
+                "  Secrets:      D:\\HermesHome\\.env\n"
+            ),
+            stderr="",
+        )
+
+        with patch("hermes_qiong_gui_switch.switcher.subprocess.run", return_value=completed):
+            self.assertEqual(
+                resolve_hermes_config_path(),
+                Path("D:\\HermesHome\\config.yaml"),
+            )
+
+    def test_write_hermes_config_updates_explicit_config_path(self):
+        with TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "actual-hermes-config.yaml"
+            untouched = Path(tmpdir) / "wrong-config.yaml"
+            starting_yaml = (
+                "model:\n"
+                "  default: deepseek-v4-pro\n"
+                "  provider: custom\n"
+                "  base_url: https://api.deepseek.com\n"
+                "  api_key: old-main-key\n"
+                "  api_mode: chat_completions\n"
+                "auxiliary:\n"
+                "  vision:\n"
+                "    provider: main\n"
+                "    model: agnes-2.0-flash\n"
+                "    base_url: https://api.deepseek.com\n"
+                "    api_key: old-vision-key\n"
+            )
+            target.write_text(starting_yaml, encoding="utf-8")
+            untouched.write_text(starting_yaml, encoding="utf-8")
+
+            providers = {
+                "智谱": {
+                    "base_url": "https://open.bigmodel.cn/api/paas/v4",
+                    "api_key": "zhipu-key",
+                    "models": ["glm-4.1v-thinking-flashx"],
+                }
+            }
+
+            write_hermes_config(
+                providers,
+                main_choice=None,
+                vision_choice=("智谱", "glm-4.1v-thinking-flashx"),
+                config_path=target,
+            )
+
+            self.assertIn("glm-4.1v-thinking-flashx", target.read_text(encoding="utf-8"))
+            self.assertIn("provider: custom", target.read_text(encoding="utf-8"))
+            self.assertIn(
+                "https://open.bigmodel.cn/api/paas/v4",
+                target.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(untouched.read_text(encoding="utf-8"), starting_yaml)
+
+
+class AgnesProxyProcessTest(unittest.TestCase):
+    def test_start_proxy_process_launches_persistent_module_with_key_in_environment(self):
+        with patch("hermes_qiong_gui_switch.proxy.subprocess.Popen") as popen:
+            process = start_proxy_process("agnes-key")
+
+        self.assertIs(process, popen.return_value)
+        args = popen.call_args.args[0]
+        kwargs = popen.call_args.kwargs
+        self.assertEqual(args[1:4], ["-m", "hermes_qiong_gui_switch.proxy"])
+        self.assertEqual(kwargs["env"]["AGNES_API_KEY"], "agnes-key")
+        self.assertNotIn("agnes-key", args)
 
 
 if __name__ == "__main__":

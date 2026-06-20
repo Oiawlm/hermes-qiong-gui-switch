@@ -7,8 +7,10 @@ Agnes API 只接受图片 URL，不接受 base64 data URI。
 
 import base64
 import json
+import os
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import urllib.request
@@ -212,6 +214,32 @@ def start_proxy(agnes_api_key: str, port: int = DEFAULT_PORT) -> threading.Threa
     return thread
 
 
+def start_proxy_process(agnes_api_key: str, port: int = DEFAULT_PORT) -> subprocess.Popen:
+    """Start the Agnes proxy as a background process that survives the switcher."""
+    env = os.environ.copy()
+    env["AGNES_API_KEY"] = agnes_api_key
+    env["AGNES_PROXY_PORT"] = str(port)
+
+    kwargs = {
+        "env": env,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "stdin": subprocess.DEVNULL,
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = (
+            getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            | getattr(subprocess, "DETACHED_PROCESS", 0)
+        )
+    else:
+        kwargs["start_new_session"] = True
+
+    return subprocess.Popen(
+        [sys.executable, "-m", "hermes_qiong_gui_switch.proxy"],
+        **kwargs,
+    )
+
+
 def is_proxy_running(port: int = DEFAULT_PORT) -> bool:
     """检查代理服务器是否正在运行。
 
@@ -227,3 +255,17 @@ def is_proxy_running(port: int = DEFAULT_PORT) -> bool:
             return resp.status == 200
     except Exception:
         return False
+
+
+def main() -> None:
+    agnes_key = os.environ.get("AGNES_API_KEY", "").strip()
+    if not agnes_key:
+        raise SystemExit("AGNES_API_KEY is required")
+    port = int(os.environ.get("AGNES_PROXY_PORT", str(DEFAULT_PORT)))
+    ProxyHandler.agnes_key = agnes_key
+    server = HTTPServer(("127.0.0.1", port), ProxyHandler)
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

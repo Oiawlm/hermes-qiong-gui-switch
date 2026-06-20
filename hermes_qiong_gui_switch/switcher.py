@@ -1,14 +1,45 @@
 """Hermes 穷鬼 Switch — 主程序 CLI 菜单 + config 写入"""
 
 import os
+import re
+import subprocess
 import sys
 import yaml
 from pathlib import Path
 
 from .models import BUILTIN_PROVIDERS, get_model_info, get_models_for_slot
-from .proxy import start_proxy, is_proxy_running
+from .proxy import start_proxy_process, is_proxy_running
 
-HERMES_CONFIG = Path(os.environ["LOCALAPPDATA"]) / "hermes" / "config.yaml"
+def _fallback_hermes_config_path() -> Path:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        return Path(local_app_data) / "hermes" / "config.yaml"
+    return Path.home() / ".hermes" / "config.yaml"
+
+
+def resolve_hermes_config_path() -> Path:
+    """Return the config path reported by the active `hermes` executable."""
+    try:
+        result = subprocess.run(
+            ["hermes", "config"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return _fallback_hermes_config_path()
+
+    output = f"{result.stdout}\n{result.stderr}"
+    match = re.search(r"Config:\s*(.+?config\.ya?ml)", output, re.IGNORECASE)
+    if match:
+        return Path(match.group(1).strip())
+    return _fallback_hermes_config_path()
+
+
+HERMES_CONFIG = _fallback_hermes_config_path()
 PROJECT_ROOT = Path(__file__).parent.parent
 PROVIDERS_FILE = PROJECT_ROOT / "providers.yaml"
 LOCAL_PROVIDERS_FILE = PROJECT_ROOT / "providers.local.yaml"
@@ -71,21 +102,34 @@ def build_slot_notice(providers: dict) -> str:
     return "\n".join(lines)
 
 
-def load_current_config() -> tuple:
+def load_current_config(config_path: Path | str | None = None) -> tuple:
     """读取当前 Hermes 主模型和视觉模型名称"""
-    if not HERMES_CONFIG.exists():
+    path = Path(config_path) if config_path is not None else resolve_hermes_config_path()
+    if not path.exists():
         return "未知", "未知"
-    with open(HERMES_CONFIG, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
     main_model = cfg.get("model", {}).get("default", "未知")
     vision_model = cfg.get("auxiliary", {}).get("vision", {}).get("model", "未知")
     return main_model, vision_model
 
 
-def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
+def write_hermes_config(
+    providers: dict,
+    main_choice,
+    vision_choice,
+    config_path: Path | str | None = None,
+) -> None:
     """将用户选择的模型写入 Hermes config.yaml"""
-    with open(HERMES_CONFIG, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+    path = Path(config_path) if config_path is not None else resolve_hermes_config_path()
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+    else:
+        cfg = {}
+
+    cfg.setdefault("model", {})
+    cfg.setdefault("auxiliary", {}).setdefault("vision", {})
 
     if main_choice is not None:
         pname, mname = main_choice
@@ -100,14 +144,15 @@ def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
         pconfig = providers[pname]
         info = get_model_info(mname)
         cfg["auxiliary"]["vision"]["model"] = mname
-        cfg["auxiliary"]["vision"]["provider"] = "main"
+        cfg["auxiliary"]["vision"]["provider"] = "custom"
         cfg["auxiliary"]["vision"]["api_key"] = pconfig["api_key"]
         if info["image_mode"] == "url":
             cfg["auxiliary"]["vision"]["base_url"] = "http://localhost:8899/v1"
         else:
             cfg["auxiliary"]["vision"]["base_url"] = pconfig["base_url"]
 
-    with open(HERMES_CONFIG, "w", encoding="utf-8") as f:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 
@@ -137,14 +182,16 @@ def pick_one(title, models, current_name):
 
 def main() -> None:
     providers = load_providers()
+    config_path = resolve_hermes_config_path()
     main_models = get_models_for_slot(providers, "main")
     vision_models = get_models_for_slot(providers, "vision")
-    current_main, current_vision = load_current_config()
+    current_main, current_vision = load_current_config(config_path)
 
     print()
     print("=" * 50)
     print("  Hermes 穷鬼 Switch")
     print("=" * 50)
+    print(f"  Hermes config: {config_path}")
     notice = build_slot_notice(providers)
     if notice:
         print()
@@ -180,7 +227,7 @@ def main() -> None:
             if not is_proxy_running():
                 print("启动 Agnes 代理...")
                 pconfig = providers[vision_choice[0]]
-                start_proxy(pconfig["api_key"])
+                start_proxy_process(pconfig["api_key"])
                 import time
                 time.sleep(1)
                 if is_proxy_running():
@@ -188,8 +235,9 @@ def main() -> None:
                 else:
                     print("警告: 代理启动失败")
 
-    write_hermes_config(providers, main_choice, vision_choice)
-    print("\n搞定！重启 Hermes 终端就行了。")
+    write_hermes_config(providers, main_choice, vision_choice, config_path=config_path)
+    print(f"\n搞定！已写入 {config_path}")
+    print("重启 Hermes 终端就行了。")
 
 
 if __name__ == "__main__":
