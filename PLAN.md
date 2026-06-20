@@ -16,14 +16,14 @@
 
 ```
 hermes-qiong-gui-switch/
-  providers.yaml          # 用户填的供应商配置（含示例）
+  providers.yaml          # 公开占位模板，用户下载后把等号右边改成自己的 key
   hermes_qiong_gui_switch/
     __init__.py
     switcher.py           # 主菜单 + config 读写
     proxy.py              # 内嵌 Agnes base64→URL 代理
     models.py             # 模型能力标记 + 自动检测
   README.md               # 安装和使用说明
-  .gitignore              # 忽略 providers.yaml（含 key）
+  .gitignore              # 忽略 providers.local.yaml（本机私密 key 覆盖文件）
 ```
 
 ---
@@ -40,8 +40,8 @@ hermes-qiong-gui-switch/
 
 ```yaml
 # Hermes 穷鬼 Switch - 供应商配置
-# 复制此文件为 providers.yaml，填入你的 API key
-# providers.yaml 已在 .gitignore 中，不会被提交
+# 仓库自带此文件；用户下载后直接把等号右边换成 API key
+# 如果本机开发不想改公开模板，可以另建 providers.local.yaml
 
 providers:
   火山方舟-AgentPlan:
@@ -81,7 +81,8 @@ providers:
 - [ ] **Step 2: 创建 .gitignore**
 
 ```
-providers.yaml
+providers.local.yaml
+providers.private.yaml
 __pycache__/
 *.pyc
 ```
@@ -618,7 +619,7 @@ providers:
 
 ## 注意事项
 
-- `providers.yaml` 包含 API key，已在 .gitignore 中，不会被提交
+- 仓库自带 `providers.yaml` 占位模板，公开提交；本机私密 key 可放进 `providers.local.yaml`
 - 切换后需重启 Hermes 终端
 - Agnes 模型需要本地代理（工具自动启动）
 
