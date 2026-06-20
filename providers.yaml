@@ -1,5 +1,5 @@
 # Hermes 穷鬼 Switch - API Key 配置
-# 先看 README 第 1 步去官网拿 API Key。
+# 先看 README 第三章“供应商和 API Key”去官网拿 API Key。
 # 把等号右边换成你的真实 key；没有的删掉或留空。
 # 注意：等号左边不要改，等号两边不要加空格。
 火山方舟-AgentPlan=你的key

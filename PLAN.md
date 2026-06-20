@@ -100,21 +100,17 @@ __pycache__/
 
 一键切换 Hermes Agent 的主模型和视觉模型供应商。穷鬼专用。
 
-## 安装
+## 一、快速开始
 
-```bash
-git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git
-cd hermes-qiong-gui-switch
-# 编辑仓库自带的 providers.yaml，填入你的 API key
-```
+打开 GitHub 仓库，点击绿色 Code，再点击 Download ZIP。解压后编辑仓库自带的 providers.yaml，填入你的 API key。
 
-## 使用
+## 二、选择模型怎么看
 
 ```bash
 python -m hermes_qiong_gui_switch.switcher
 ```
 
-上下键选模型，回车确认，一键写入 Hermes 配置。
+按提示输入数字选择模型，最后输入 y 写入 Hermes 配置。
 切换后需重启 Hermes 终端。
 ```
 
@@ -546,7 +542,7 @@ Expected: 显示菜单，列出所有模型，按 Q 退出。
 
 - [ ] **Step 3: 测试配置写入**
 
-手动选一个主模型和视觉模型，按 A 应用。然后检查 config.yaml。
+手动选一个主模型和视觉模型，最后输入 y 应用。然后检查 config.yaml。
 
 Run: `grep -A3 "default:" "$LOCALAPPDATA/hermes/config.yaml" && grep -A6 "vision:" "$LOCALAPPDATA/hermes/config.yaml"`
 
@@ -580,17 +576,13 @@ git commit -m "feat: 主切换逻辑 — CLI 菜单 + config 写入"
 - 选 Agnes 免费模型时自动启动本地代理
 - 一键写入 Hermes config.yaml
 
-## 安装
+## 一、快速开始
 
-```bash
-git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git
-cd hermes-qiong-gui-switch
-# 编辑仓库自带的 providers.yaml
-```
+打开 GitHub 仓库，点击绿色 Code，再点击 Download ZIP。解压后编辑仓库自带的 providers.yaml。
 
 编辑 `providers.yaml`，填入你的 API key。
 
-## 使用
+## 二、选择模型怎么看
 
 ```bash
 python -m hermes_qiong_gui_switch.switcher
@@ -598,10 +590,10 @@ python -m hermes_qiong_gui_switch.switcher
 
 1. 输入数字选择主模型
 2. 输入数字选择视觉模型（可选）
-3. 按 A 应用配置
+3. 输入 y 应用配置
 4. 重启 Hermes 终端
 
-## 供应商配置
+## 三、供应商和 API Key
 
 在 `providers.yaml` 中添加你的供应商：
 
@@ -617,13 +609,13 @@ providers:
 
 工具会自动识别模型能力（纯文本/多模态/视觉）和图片模式（base64/URL）。
 
-## 注意事项
+## 四、常见问题
 
 - 仓库自带 `providers.yaml` 占位模板，公开提交；本机私密 key 可放进 `providers.local.yaml`
 - 切换后需重启 Hermes 终端
 - Agnes 模型需要本地代理（工具自动启动）
 
-## 许可证
+## 五、许可证
 
 MIT
 ```
