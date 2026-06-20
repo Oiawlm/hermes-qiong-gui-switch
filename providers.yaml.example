@@ -1,0 +1,33 @@
+providers:
+  - name: 火山方舟-AgentPlan
+    base_url: https://ark.cn-beijing.volces.com/api/plan/v3
+    api_key: "你的key"
+    models:
+      - deepseek-v4-pro
+      - doubao-seed-2.0-pro
+
+  - name: 火山方舟-按量
+    base_url: https://ark.cn-beijing.volces.com/api/plan/v3
+    api_key: "你的key"
+    models:
+      - deepseek-v4-pro
+      - doubao-seed-2.0-pro
+
+  - name: DeepSeek官方
+    base_url: https://api.deepseek.com
+    api_key: "你的key"
+    models:
+      - deepseek-v4-pro
+
+  - name: 智谱
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    api_key: "你的key"
+    models:
+      - glm-4.5-air
+      - glm-4.1v-flashx
+
+  - name: Agnes免费
+    base_url: http://localhost:8899
+    api_key: "你的key"
+    models:
+      - agnes-2.0-flash
