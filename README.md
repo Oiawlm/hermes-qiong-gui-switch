@@ -19,6 +19,8 @@ python -m hermes_qiong_gui_switch.switcher
 
 按提示一步一步输入数字选模型，回车跳过不想改的项，最后输入 y 应用，重启 Hermes。
 
+Agnes 免费模型是视觉模型，不会出现在第一步“主模型”里；按回车或选完主模型后，第二步“视觉模型”里再选它。
+
 ## 填 key
 
 打开 `providers.yaml`，把等号右边换成你的真实 key。没有的删掉或留空。

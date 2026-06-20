@@ -51,6 +51,26 @@ def load_providers() -> dict:
     return providers
 
 
+def build_slot_notice(providers: dict) -> str:
+    """说明只会出现在第二步的视觉模型，避免用户误以为配置没读到。"""
+    main_pairs = {
+        (pname, model_name)
+        for pname, model_name, _info in get_models_for_slot(providers, "main")
+    }
+    vision_only = [
+        (pname, model_name)
+        for pname, model_name, _info in get_models_for_slot(providers, "vision")
+        if (pname, model_name) not in main_pairs
+    ]
+    if not vision_only:
+        return ""
+
+    lines = ["  提示：第一步只选主模型；下面这些视觉模型只会在第二步出现："]
+    for pname, model_name in vision_only:
+        lines.append(f"  - {model_name}（{pname}）")
+    return "\n".join(lines)
+
+
 def load_current_config() -> tuple:
     """读取当前 Hermes 主模型和视觉模型名称"""
     if not HERMES_CONFIG.exists():
@@ -125,6 +145,10 @@ def main() -> None:
     print("=" * 50)
     print("  Hermes 穷鬼 Switch")
     print("=" * 50)
+    notice = build_slot_notice(providers)
+    if notice:
+        print()
+        print(notice)
 
     # 第一步：选主模型
     main_choice = pick_one("第一步：选主模型", main_models, current_main)
