@@ -69,7 +69,7 @@ providers:
     api_key: 你的key
     models:
       - glm-4.5-air
-      - glm-4.1v-flashx
+      - glm-4.1v-thinking-flashx
 
   Agnes免费:
     base_url: http://localhost:8899
@@ -149,7 +149,7 @@ KNOWN_MODELS = {
     "doubao-seed-2.0-lite": {"type": "multimodal", "image_mode": "base64"},
     "glm-4.5-air": {"type": "text", "image_mode": None},
     "glm-4.7": {"type": "text", "image_mode": None},
-    "glm-4.1v-flashx": {"type": "vision", "image_mode": "base64"},
+    "glm-4.1v-thinking-flashx": {"type": "vision", "image_mode": "base64"},
     "glm-4.6v": {"type": "vision", "image_mode": "base64"},
     "agnes-2.0-flash": {"type": "vision", "image_mode": "url"},
 }
