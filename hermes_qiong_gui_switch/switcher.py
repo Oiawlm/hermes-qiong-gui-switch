@@ -5,7 +5,7 @@ import sys
 import yaml
 from pathlib import Path
 
-from .models import get_model_info, get_models_for_slot
+from .models import BUILTIN_PROVIDERS, get_model_info, get_models_for_slot
 from .proxy import start_proxy, is_proxy_running
 
 HERMES_CONFIG = Path(os.environ["LOCALAPPDATA"]) / "hermes" / "config.yaml"
@@ -13,68 +13,58 @@ PROVIDERS_FILE = Path(__file__).parent.parent / "providers.yaml"
 
 
 def load_providers() -> dict:
-    """加载供应商配置。
-
-    Returns:
-        dict: {"provider_name": {"base_url": ..., "api_key": ..., "models": [...]}, ...}
-
-    如果 providers.yaml 不存在，打印错误信息并退出。
+    """加载供应商配置：内置 base_url + 模型 + 用户填的 API key。
+    
+    用户只需在 providers.yaml 里填 key，格式：
+        火山方舟-AgentPlan: sk-xxx
+        DeepSeek官方: sk-xxx
+    
+    base_url 和模型列表全部内置，用户不用管。
     """
     if not PROVIDERS_FILE.exists():
         print(f"错误: 找不到 {PROVIDERS_FILE}")
-        print("请复制 providers.yaml.example 为 providers.yaml 并填入你的 API key")
+        print("请创建 providers.yaml 并填入你的 API key")
         sys.exit(1)
 
     with open(PROVIDERS_FILE, "r", encoding="utf-8") as f:
-        raw = yaml.safe_load(f)
+        user_keys = yaml.safe_load(f) or {}
 
-    providers_list = raw.get("providers", [])
+    # 合并：内置配置 + 用户 key，没有 key 的供应商跳过
+    providers = {}
+    for name, builtin in BUILTIN_PROVIDERS.items():
+        key = user_keys.get(name, "").strip()
+        if not key or key == "你的key":
+            continue  # 用户没填 key，跳过这个供应商
+        providers[name] = {
+            "base_url": builtin["base_url"],
+            "api_key": key,
+            "models": builtin["models"],
+        }
 
-    # 支持两种格式：dict（键为供应商名）和 list（每项含 name 字段）
-    if isinstance(providers_list, dict):
-        return providers_list
+    if not providers:
+        print("错误: providers.yaml 中没有有效的 API key")
+        print("请编辑 providers.yaml，至少填入一个供应商的 key")
+        sys.exit(1)
 
-    if isinstance(providers_list, list):
-        result = {}
-        for entry in providers_list:
-            name = entry.pop("name", None)
-            if name:
-                result[name] = entry
-        return result
-
-    print("错误: providers.yaml 格式不正确，providers 应为 dict 或 list")
-    sys.exit(1)
+    return providers
 
 
 def load_current_config() -> tuple:
-    """读取当前 Hermes config.yaml 中的主模型和视觉模型名称。
-
-    Returns:
-        (main_model_name, vision_model_name) 或 ("未知", "未知")
-    """
+    """读取当前 Hermes 主模型和视觉模型名称"""
     if not HERMES_CONFIG.exists():
         return "未知", "未知"
-
     with open(HERMES_CONFIG, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
-
     main_model = cfg.get("model", {}).get("default", "未知")
     vision_model = cfg.get("auxiliary", {}).get("vision", {}).get("model", "未知")
     return main_model, vision_model
 
 
 def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
-    """将用户选择的模型写入 Hermes config.yaml。
-
-    Args:
-        providers: 供应商配置字典。
-        main_choice: (provider_name, model_name) 或 None。
-        vision_choice: (provider_name, model_name) 或 None。
-    """
+    """将用户选择的模型写入 Hermes config.yaml"""
     with open(HERMES_CONFIG, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    # 主模型
     if main_choice is not None:
         pname, mname = main_choice
         pconfig = providers[pname]
@@ -83,21 +73,16 @@ def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
         cfg["model"]["base_url"] = pconfig["base_url"]
         cfg["model"]["api_key"] = pconfig["api_key"]
 
-    # 视觉模型
     if vision_choice is not None:
         pname, mname = vision_choice
         pconfig = providers[pname]
         info = get_model_info(mname)
-
         cfg["auxiliary"]["vision"]["model"] = mname
         cfg["auxiliary"]["vision"]["provider"] = "main"
         cfg["auxiliary"]["vision"]["api_key"] = pconfig["api_key"]
-
         if info["image_mode"] == "url":
-            # Agnes 模式：走本地代理
             cfg["auxiliary"]["vision"]["base_url"] = "http://localhost:8899/v1"
         else:
-            # 直连模式
             cfg["auxiliary"]["vision"]["base_url"] = pconfig["base_url"]
 
     with open(HERMES_CONFIG, "w", encoding="utf-8") as f:
@@ -105,18 +90,9 @@ def write_hermes_config(providers: dict, main_choice, vision_choice) -> None:
 
 
 def show_menu(providers: dict) -> tuple:
-    """显示 CLI 交互菜单，让用户选择主模型和视觉模型。
-
-    Args:
-        providers: 供应商配置字典。
-
-    Returns:
-        (main_choice, vision_choice)
-        其中每个 choice 为 (provider_name, model_name) 或 None。
-    """
+    """CLI 交互菜单"""
     main_models = get_models_for_slot(providers, "main")
     vision_models = get_models_for_slot(providers, "vision")
-
     current_main, current_vision = load_current_config()
 
     main_choice = None
@@ -129,7 +105,6 @@ def show_menu(providers: dict) -> tuple:
         print(f"  当前: 主模型 {current_main} | 视觉 {current_vision}")
         print()
 
-        # 主模型列表
         print("  主模型:")
         for i, (pname, mname, _info) in enumerate(main_models, 1):
             marker = " ←" if mname == current_main else ""
@@ -177,11 +152,9 @@ def show_menu(providers: dict) -> tuple:
 
 
 def main() -> None:
-    """主入口：加载配置 → 显示菜单 → 写入 config → 提示重启。"""
     providers = load_providers()
     main_choice, vision_choice = show_menu(providers)
 
-    # 如果选了 Agnes 视觉模型（image_mode == "url"），确保代理在跑
     if vision_choice is not None:
         _pname, mname = vision_choice
         info = get_model_info(mname)

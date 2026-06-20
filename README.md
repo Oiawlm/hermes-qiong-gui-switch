@@ -1,57 +1,39 @@
 # Hermes 穷鬼 Switch
 
-一键切换 Hermes Agent 的主模型和视觉模型供应商。穷鬼专用。
+一键切换 Hermes Agent 的主模型和视觉模型。穷鬼专用。
 
-## 功能
+## 怎么用
 
-- 独立选择主模型和视觉模型，跨供应商混搭
-- 自动处理 base64/URL 图片模式差异
-- 选 Agnes 免费模型时自动启动本地代理
-- 一键写入 Hermes config.yaml
+**第一步：填 key**
 
-## 安装
+复制 `providers.yaml.example` 为 `providers.yaml`，把 `你的key` 换成真实的 API key。没有的供应商删掉或留空。
 
-```bash
-git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git
-cd hermes-qiong-gui-switch
-pip install pyyaml
-cp providers.yaml.example providers.yaml
+```yaml
+火山方舟-AgentPlan: ark-7e5d...
+DeepSeek官方: sk-xxx
+智谱: 你的key
+Agnes免费: sk-P7j...
 ```
 
-编辑 `providers.yaml`，填入你的 API key。
-
-## 使用
+**第二步：运行**
 
 ```bash
+pip install pyyaml
 python -m hermes_qiong_gui_switch.switcher
 ```
 
-1. 输入数字选择主模型
-2. 输入数字选择视觉模型（可选）
-3. 按 A 应用配置
-4. 重启 Hermes 终端
+**第三步：选模型**
 
-## 供应商配置
+上下键选主模型和视觉模型，按 A 应用，重启 Hermes。
 
-在 `providers.yaml` 中添加你的供应商：
+## 内置供应商
 
-```yaml
-providers:
-  我的供应商:
-    base_url: https://api.example.com/v1
-    api_key: sk-xxx
-    models:
-      - model-name-1
-      - model-name-2
-```
+base_url 和模型列表已内置，你只管填 key：
 
-工具内置了常见模型的能力标记（纯文本/多模态/视觉），未知模型默认为纯文本。
-
-## 注意事项
-
-- `providers.yaml` 包含 API key，已在 .gitignore 中，不会被提交
-- 切换后需重启 Hermes 终端
-- Agnes 模型需要本地代理（工具自动启动）
+- 火山方舟 Agent Plan / 按量 → deepseek-v4-pro + doubao-seed-2.0-pro
+- DeepSeek 官方 → deepseek-v4-pro
+- 智谱 → glm-4.5-air + glm-4.1v-flashx
+- Agnes 免费 → agnes-2.0-flash（自动启动代理）
 
 ## 许可证
 
