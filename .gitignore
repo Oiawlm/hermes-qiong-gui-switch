@@ -1,3 +1,4 @@
-providers.yaml
+providers.local.yaml
+providers.private.yaml
 __pycache__
 *.pyc

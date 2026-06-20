@@ -6,7 +6,7 @@
 
 **把下面这句话发给你的 AI Agent，它会帮你搞定一切：**
 
-> 帮我装 Hermes 穷鬼 Switch：git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git 到本地，pip install pyyaml，复制 providers.yaml.example 为 providers.yaml，然后引导我填 API key。
+> 帮我装 Hermes 穷鬼 Switch：git clone https://github.com/Oiawlm/hermes-qiong-gui-switch.git 到本地，pip install pyyaml，打开仓库自带的 providers.yaml，引导我把等号右边换成 API key。
 
 ## 怎么用
 
@@ -17,7 +17,7 @@ cd hermes-qiong-gui-switch
 python -m hermes_qiong_gui_switch.switcher
 ```
 
-输入数字选主模型和视觉模型，按 A 应用，重启 Hermes。
+按提示一步一步输入数字选模型，回车跳过不想改的项，最后输入 y 应用，重启 Hermes。
 
 ## 填 key
 

@@ -9,18 +9,21 @@ from .models import BUILTIN_PROVIDERS, get_model_info, get_models_for_slot
 from .proxy import start_proxy, is_proxy_running
 
 HERMES_CONFIG = Path(os.environ["LOCALAPPDATA"]) / "hermes" / "config.yaml"
-PROVIDERS_FILE = Path(__file__).parent.parent / "providers.yaml"
+PROJECT_ROOT = Path(__file__).parent.parent
+PROVIDERS_FILE = PROJECT_ROOT / "providers.yaml"
+LOCAL_PROVIDERS_FILE = PROJECT_ROOT / "providers.local.yaml"
 
 
 def load_providers() -> dict:
     """加载供应商配置：内置 base_url + 模型 + 用户填的 API key。"""
-    if not PROVIDERS_FILE.exists():
+    providers_file = LOCAL_PROVIDERS_FILE if LOCAL_PROVIDERS_FILE.exists() else PROVIDERS_FILE
+    if not providers_file.exists():
         print(f"错误: 找不到 {PROVIDERS_FILE}")
         print("请创建 providers.yaml 并填入你的 API key")
         sys.exit(1)
 
     user_keys = {}
-    with open(PROVIDERS_FILE, "r", encoding="utf-8") as f:
+    with open(providers_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
