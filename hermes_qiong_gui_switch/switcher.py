@@ -4,10 +4,11 @@ import os
 import re
 import subprocess
 import sys
+import time
 import yaml
 from pathlib import Path
 
-from .models import BUILTIN_PROVIDERS, get_model_info, get_models_for_slot
+from .models import BUILTIN_PROVIDERS, get_models_for_slot
 from .proxy import start_proxy_process, is_proxy_running
 
 def _fallback_hermes_config_path() -> Path:
@@ -43,6 +44,9 @@ HERMES_CONFIG = _fallback_hermes_config_path()
 PROJECT_ROOT = Path(__file__).parent.parent
 PROVIDERS_FILE = PROJECT_ROOT / "providers.yaml"
 LOCAL_PROVIDERS_FILE = PROJECT_ROOT / "providers.local.yaml"
+VISION_AUTO = "__vision_auto__"
+AGNES_MODEL = "agnes-2.0-flash"
+AGNES_PROXY_BASE_URL = "http://localhost:8899/v1"
 
 
 def load_providers() -> dict:
@@ -114,20 +118,14 @@ def load_current_config(config_path: Path | str | None = None) -> tuple:
     return main_model, vision_model
 
 
-def write_hermes_config(
-    providers: dict,
-    main_choice,
-    vision_choice,
-    config_path: Path | str | None = None,
-) -> None:
-    """将用户选择的模型写入 Hermes config.yaml"""
-    path = Path(config_path) if config_path is not None else resolve_hermes_config_path()
-    if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f) or {}
-    else:
-        cfg = {}
+def load_config_dict(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
 
+
+def apply_model_choices(cfg: dict, providers: dict, main_choice, vision_choice) -> dict:
     cfg.setdefault("model", {})
     cfg.setdefault("auxiliary", {}).setdefault("vision", {})
 
@@ -139,29 +137,93 @@ def write_hermes_config(
         cfg["model"]["base_url"] = pconfig["base_url"]
         cfg["model"]["api_key"] = pconfig["api_key"]
 
-    if vision_choice is not None:
+    if vision_choice == VISION_AUTO:
+        cfg["auxiliary"]["vision"] = {
+            "provider": "auto",
+            "model": "",
+            "base_url": "",
+            "api_key": "",
+        }
+    elif vision_choice is not None:
         pname, mname = vision_choice
         pconfig = providers[pname]
-        info = get_model_info(mname)
         cfg["auxiliary"]["vision"]["model"] = mname
         cfg["auxiliary"]["vision"]["provider"] = "custom"
         cfg["auxiliary"]["vision"]["api_key"] = pconfig["api_key"]
-        if info["image_mode"] == "url":
-            cfg["auxiliary"]["vision"]["base_url"] = "http://localhost:8899/v1"
-        else:
-            cfg["auxiliary"]["vision"]["base_url"] = pconfig["base_url"]
+        cfg["auxiliary"]["vision"]["base_url"] = pconfig["base_url"]
 
+    return cfg
+
+
+def save_config_dict(path: Path, cfg: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 
-def pick_one(title, models, current_name):
+def config_uses_agnes_proxy(cfg: dict) -> bool:
+    sections = [cfg.get("model", {}), cfg.get("auxiliary", {}).get("vision", {})]
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        model_name = section.get("default") or section.get("model")
+        base_url = str(section.get("base_url", "")).rstrip("/")
+        if model_name == AGNES_MODEL and base_url == AGNES_PROXY_BASE_URL.rstrip("/"):
+            return True
+    return False
+
+
+def get_agnes_api_key(providers: dict) -> str:
+    for pconfig in providers.values():
+        if AGNES_MODEL in pconfig.get("models", []):
+            return pconfig.get("api_key", "")
+    return ""
+
+
+def ensure_agnes_proxy_if_needed(cfg: dict, providers: dict) -> None:
+    if not config_uses_agnes_proxy(cfg):
+        return
+    if is_proxy_running():
+        return
+    agnes_key = get_agnes_api_key(providers)
+    if not agnes_key:
+        print("警告: Agnes 代理需要 API key，但 providers.yaml 中没有可用的 Agnes key")
+        return
+    print("启动 Agnes 代理...")
+    start_proxy_process(agnes_key)
+    time.sleep(1)
+    if is_proxy_running():
+        print("代理已启动 (localhost:8899)")
+    else:
+        print("警告: 代理启动失败")
+
+
+def write_hermes_config(
+    providers: dict,
+    main_choice,
+    vision_choice,
+    config_path: Path | str | None = None,
+) -> dict:
+    """将用户选择的模型写入 Hermes config.yaml"""
+    path = Path(config_path) if config_path is not None else resolve_hermes_config_path()
+    cfg = apply_model_choices(
+        load_config_dict(path),
+        providers,
+        main_choice,
+        vision_choice,
+    )
+    save_config_dict(path, cfg)
+    return cfg
+
+
+def pick_one(title, models, current_name, allow_auto=False):
     """问用户选一个，返回 (provider_name, model_name) 或 None"""
     print()
     print(f"  {title}")
     print(f"  当前用的是: {current_name}")
     print()
+    if allow_auto:
+        print("  0. 跟随主模型 / 自动")
     for i, (pname, mname, _info) in enumerate(models, 1):
         print(f"  {i}. {mname}（{pname}）")
     print(f"  回车 = 不换，保持当前")
@@ -171,6 +233,8 @@ def pick_one(title, models, current_name):
         choice = input("  输入数字: ").strip()
         if choice == "":
             return None
+        if allow_auto and choice == "0":
+            return VISION_AUTO
         try:
             idx = int(choice) - 1
             if 0 <= idx < len(models):
@@ -201,7 +265,12 @@ def main() -> None:
     main_choice = pick_one("第一步：选主模型", main_models, current_main)
 
     # 第二步：选视觉模型
-    vision_choice = pick_one("第二步：选视觉模型（可跳过）", vision_models, current_vision)
+    vision_choice = pick_one(
+        "第二步：选视觉模型（可跳过）",
+        vision_models,
+        current_vision,
+        allow_auto=True,
+    )
 
     # 确认
     print()
@@ -209,7 +278,9 @@ def main() -> None:
         print(f"  主模型 → {main_choice[1]}")
     else:
         print(f"  主模型 → 不换（保持 {current_main}）")
-    if vision_choice:
+    if vision_choice == VISION_AUTO:
+        print("  视觉模型 → 跟随主模型 / 自动")
+    elif vision_choice:
         print(f"  视觉模型 → {vision_choice[1]}")
     else:
         print(f"  视觉模型 → 不换（保持 {current_vision}）")
@@ -219,23 +290,14 @@ def main() -> None:
         print("已取消。")
         sys.exit(0)
 
-    # 如果选了 Agnes 视觉模型，启动代理
-    if vision_choice is not None:
-        _pname, mname = vision_choice
-        info = get_model_info(mname)
-        if info["image_mode"] == "url":
-            if not is_proxy_running():
-                print("启动 Agnes 代理...")
-                pconfig = providers[vision_choice[0]]
-                start_proxy_process(pconfig["api_key"])
-                import time
-                time.sleep(1)
-                if is_proxy_running():
-                    print("代理已启动 (localhost:8899)")
-                else:
-                    print("警告: 代理启动失败")
-
-    write_hermes_config(providers, main_choice, vision_choice, config_path=config_path)
+    planned_cfg = apply_model_choices(
+        load_config_dict(config_path),
+        providers,
+        main_choice,
+        vision_choice,
+    )
+    ensure_agnes_proxy_if_needed(planned_cfg, providers)
+    save_config_dict(config_path, planned_cfg)
     print(f"\n搞定！已写入 {config_path}")
     print("重启 Hermes 终端就行了。")
 
