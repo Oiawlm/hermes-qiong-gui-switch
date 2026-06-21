@@ -47,6 +47,26 @@ class GLMVisionModelCatalogTest(unittest.TestCase):
         self.assertIn(official_model_id, vision_models)
 
 
+class GLMMainModelCatalogTest(unittest.TestCase):
+    def test_glm_47_is_available_as_zhipu_main_model(self):
+        model_id = "glm-4.7"
+
+        zhipu_models = BUILTIN_PROVIDERS["智谱"]["models"]
+        self.assertIn(model_id, zhipu_models)
+        self.assertEqual(get_model_info(model_id), {"type": "text", "image_mode": None})
+
+        main_models = [
+            model_name
+            for _, model_name, _ in get_models_for_slot(BUILTIN_PROVIDERS, "main")
+        ]
+        vision_models = [
+            model_name
+            for _, model_name, _ in get_models_for_slot(BUILTIN_PROVIDERS, "vision")
+        ]
+        self.assertIn(model_id, main_models)
+        self.assertNotIn(model_id, vision_models)
+
+
 class AgnesModelCatalogTest(unittest.TestCase):
     def test_agnes_flash_is_available_for_main_and_vision_through_proxy(self):
         agnes_provider = BUILTIN_PROVIDERS["Agnes免费"]
