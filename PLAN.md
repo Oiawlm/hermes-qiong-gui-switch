@@ -72,7 +72,7 @@ providers:
       - glm-4.1v-thinking-flashx
 
   Agnes免费:
-    base_url: http://localhost:8899
+    base_url: http://localhost:8899/v1
     api_key: 你的Agnes key
     models:
       - agnes-2.0-flash
@@ -151,7 +151,7 @@ KNOWN_MODELS = {
     "glm-4.7": {"type": "text", "image_mode": None},
     "glm-4.1v-thinking-flashx": {"type": "vision", "image_mode": "base64"},
     "glm-4.6v": {"type": "vision", "image_mode": "base64"},
-    "agnes-2.0-flash": {"type": "vision", "image_mode": "url"},
+    "agnes-2.0-flash": {"type": "multimodal", "image_mode": "url"},
 }
 
 
@@ -218,7 +218,7 @@ git commit -m "feat: 模型能力标记模块"
 - [ ] **Step 1: 创建 proxy.py**
 
 ```python
-"""内嵌 Agnes 视觉代理 — 自动将 base64 图片上传 0x0.st 换 URL 后转发 Agnes"""
+"""内嵌 Agnes 兼容代理 — 自动将 base64 图片上传 0x0.st 换 URL 后转发 Agnes"""
 
 import json
 import base64
@@ -509,7 +509,7 @@ def main():
     providers = load_providers()
     main_choice, vision_choice = show_menu(providers)
 
-    # 如果选了 Agnes 视觉模型，确保代理在跑
+    # 如果主模型或视觉模型选了 Agnes，确保代理在跑
     if vision_choice:
         _, mname = vision_choice
         info = get_model_info(mname)

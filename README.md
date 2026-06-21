@@ -70,7 +70,7 @@ python -m hermes_qiong_gui_switch.switcher
 
 第一步是选主模型。输入数字选模型，或者直接按回车保持不变。
 
-第二步是选视觉模型。Agnes 免费模型是视觉模型，只会在这一步出现。
+第二步是选视觉模型。Agnes 免费模型也会出现在这里；如果想让 Hermes 自动跟随主模型处理图片，可以输入 `0`。
 
 最后看到“确认应用？(y/n)”时，输入 `y`，然后按回车。
 
@@ -90,11 +90,11 @@ python -m hermes_qiong_gui_switch.switcher
 
 如果你不处理图片，可以直接按回车跳过视觉模型，不影响主模型切换。
 
-### 3. Agnes 为什么在第二步
+### 3. Agnes 为什么主模型和视觉模型里都有
 
-Agnes 免费模型在这个工具里只作为视觉模型使用。
+Agnes 免费模型既可以作为主模型使用，也可以作为视觉模型使用。
 
-所以它不会出现在第一步“主模型”里，只会出现在第二步“视觉模型”里。
+为了兼容 Hermes 发送的 base64 图片，工具会让 Agnes 统一走本地代理 `localhost:8899`。普通文本会直接转发给 Agnes；遇到图片时，代理会先把图片转成 Agnes 支持的公开 URL。
 
 ## 三、供应商和 API Key
 
@@ -104,7 +104,7 @@ Agnes 免费模型在这个工具里只作为视觉模型使用。
 | 火山方舟按量 | `火山方舟-按量` | 主模型 / 视觉模型 | [火山方舟 API Key](https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey) |
 | DeepSeek 官方 | `DeepSeek官方` | 主模型 | [DeepSeek API Keys](https://platform.deepseek.com/api_keys) |
 | 智谱 | `智谱` | 主模型 / 视觉模型 | [智谱 API Key](https://open.bigmodel.cn/usercenter/apikeys) |
-| Agnes 免费 | `Agnes免费` | 视觉模型 | [Agnes 文档](https://agnes-ai.com/doc/quick-start) |
+| Agnes 免费 | `Agnes免费` | 主模型 / 视觉模型 | [Agnes 文档](https://agnes-ai.com/doc/quick-start) |
 
 API Key 相当于密码，不要发给别人，也不要截图发出去。
 
@@ -136,9 +136,9 @@ python -m hermes_qiong_gui_switch.switcher
 
 ### 3. Agnes 没出现
 
-如果第一步没有 Agnes，这是正常的。Agnes 是视觉模型，不是主模型，要到第二步“视觉模型”里选。
+如果第一步和第二步都没有 Agnes，检查 `providers.yaml` 里这一行左边是不是完全一样：
 
-如果第二步也没有 Agnes，检查 `providers.yaml` 里这一行左边是不是完全一样：
+如果只是不想继续显式使用 Agnes 视觉模型，第二步输入 `0` 可以恢复为“跟随主模型 / 自动”。
 
 ```text
 Agnes免费=你的key
