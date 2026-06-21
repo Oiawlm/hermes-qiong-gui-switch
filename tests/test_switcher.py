@@ -46,6 +46,27 @@ class GLMVisionModelCatalogTest(unittest.TestCase):
         self.assertNotIn(official_model_id, main_models)
         self.assertIn(official_model_id, vision_models)
 
+    def test_glm_46v_is_available_as_zhipu_vision_model(self):
+        model_id = "glm-4.6v"
+
+        zhipu_models = BUILTIN_PROVIDERS["智谱"]["models"]
+        self.assertIn(model_id, zhipu_models)
+        self.assertEqual(
+            get_model_info(model_id),
+            {"type": "vision", "image_mode": "base64"},
+        )
+
+        main_models = [
+            model_name
+            for _, model_name, _ in get_models_for_slot(BUILTIN_PROVIDERS, "main")
+        ]
+        vision_models = [
+            model_name
+            for _, model_name, _ in get_models_for_slot(BUILTIN_PROVIDERS, "vision")
+        ]
+        self.assertNotIn(model_id, main_models)
+        self.assertIn(model_id, vision_models)
+
 
 class GLMMainModelCatalogTest(unittest.TestCase):
     def test_glm_47_is_available_as_zhipu_main_model(self):

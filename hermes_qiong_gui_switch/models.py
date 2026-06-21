@@ -16,7 +16,7 @@ BUILTIN_PROVIDERS = {
     },
     "智谱": {
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
-        "models": ["glm-4.7", "glm-4.5-air", "glm-4.1v-thinking-flashx"],
+        "models": ["glm-4.7", "glm-4.5-air", "glm-4.6v", "glm-4.1v-thinking-flashx"],
     },
     "Agnes免费": {
         "base_url": "http://localhost:8899/v1",

@@ -69,6 +69,7 @@ providers:
     api_key: 你的key
     models:
       - glm-4.5-air
+      - glm-4.6v
       - glm-4.1v-thinking-flashx
 
   Agnes免费:
