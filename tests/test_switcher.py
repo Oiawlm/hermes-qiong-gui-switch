@@ -199,6 +199,47 @@ class HermesConfigPathTest(unittest.TestCase):
             self.assertEqual(cfg["model"]["api_key"], "agnes-key")
             self.assertTrue(config_uses_agnes_proxy(cfg))
 
+    def test_write_hermes_config_syncs_custom_provider_with_main_model(self):
+        with TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "config.yaml"
+            target.write_text(
+                "model:\n"
+                "  default: old-model\n"
+                "  provider: custom\n"
+                "  base_url: https://old.example/v1\n"
+                "  api_key: old-main-key\n"
+                "  api_mode: chat_completions\n"
+                "model_providers:\n"
+                "  custom:\n"
+                "    base_url: https://ark.cn-beijing.volces.com/api/plan/v3\n"
+                "auxiliary:\n"
+                "  vision: {}\n",
+                encoding="utf-8",
+            )
+            providers = {
+                "Agnes免费": {
+                    "base_url": "http://localhost:8899/v1",
+                    "api_key": "agnes-key",
+                    "models": ["agnes-2.0-flash"],
+                }
+            }
+
+            cfg = write_hermes_config(
+                providers,
+                main_choice=("Agnes免费", "agnes-2.0-flash"),
+                vision_choice=None,
+                config_path=target,
+            )
+
+            self.assertEqual(
+                cfg["model_providers"]["custom"],
+                {
+                    "base_url": "http://localhost:8899/v1",
+                    "api_key": "agnes-key",
+                    "api_mode": "chat_completions",
+                },
+            )
+
     def test_write_hermes_config_resets_vision_to_auto(self):
         with TemporaryDirectory() as tmpdir:
             target = Path(tmpdir) / "config.yaml"
