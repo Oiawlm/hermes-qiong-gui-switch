@@ -125,6 +125,17 @@ def load_config_dict(path: Path) -> dict:
         return yaml.safe_load(f) or {}
 
 
+def sync_custom_model_provider(cfg: dict) -> None:
+    model_cfg = cfg.get("model", {})
+    if not isinstance(model_cfg, dict) or model_cfg.get("provider") != "custom":
+        return
+
+    custom_provider = cfg.setdefault("model_providers", {}).setdefault("custom", {})
+    custom_provider["base_url"] = model_cfg.get("base_url", "")
+    custom_provider["api_key"] = model_cfg.get("api_key", "")
+    custom_provider["api_mode"] = model_cfg.get("api_mode", "chat_completions")
+
+
 def apply_model_choices(cfg: dict, providers: dict, main_choice, vision_choice) -> dict:
     cfg.setdefault("model", {})
     cfg.setdefault("auxiliary", {}).setdefault("vision", {})
@@ -136,6 +147,8 @@ def apply_model_choices(cfg: dict, providers: dict, main_choice, vision_choice) 
         cfg["model"]["provider"] = "custom"
         cfg["model"]["base_url"] = pconfig["base_url"]
         cfg["model"]["api_key"] = pconfig["api_key"]
+        cfg["model"].setdefault("api_mode", "chat_completions")
+        sync_custom_model_provider(cfg)
 
     if vision_choice == VISION_AUTO:
         cfg["auxiliary"]["vision"] = {
